@@ -1,0 +1,44 @@
+{
+  "manifest_version": 3,
+  "name": "ELC Essentials",
+  "version": "3.3.0",
+  "description": "Practice tests, course schedule, and grade tools for UGA D2L Brightspace (ELC).",
+  "author": "Matteo Garza",
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "action": {
+    "default_title": "ELC Essentials",
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "permissions": ["storage", "tabs"],
+  "host_permissions": [
+    "https://uga.view.usg.edu/*",
+    "https://athena-prod.uga.edu/*",
+    "https://api.openai.com/*",
+    "https://raw.githubusercontent.com/*",
+    "https://gist.githubusercontent.com/*",
+    "http://127.0.0.1/*",
+    "http://localhost/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://uga.view.usg.edu/*",
+        "https://athena-prod.uga.edu/*"
+      ],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}
