@@ -74,3 +74,11 @@ Create a ZIP manually with the same files as the scripts above. For **Chrome**, 
 ## Version shown in the built package
 
 Bump the `"version"` field in **`manifest.json`** (Chrome) and **`manifest-firefox.json`** (Firefox) together when you release.
+
+## Privacy policy (public URL for store listings)
+
+The file **`docs/privacy.html`** is published with **GitHub Pages** from this repository’s **`/docs`** folder.
+
+1. Push this repo to GitHub (create an empty repository on GitHub, then add it as `origin` and `git push -u origin main`).
+2. In the repo on GitHub: **Settings → Pages → Build and deployment → Source**: **Deploy from a branch**, branch **main**, folder **`/docs`**, Save.
+3. After a minute or two, the policy is available at **`https://<your-username>.github.io/<repo-name>/privacy.html`**. Use that exact HTTPS URL in the Chrome Web Store **Privacy** tab (and anywhere else a privacy policy link is required).
