@@ -81,4 +81,4 @@ The file **`docs/privacy.html`** is published with **GitHub Pages** from this re
 
 1. Push this repo to GitHub (create an empty repository on GitHub, then add it as `origin` and `git push -u origin main`).
 2. In the repo on GitHub: **Settings → Pages → Build and deployment → Source**: **Deploy from a branch**, branch **main**, folder **`/docs`**, Save.
-3. After a minute or two, the policy is available at **`https://<your-username>.github.io/<repo-name>/privacy.html`**. Use that exact HTTPS URL in the Chrome Web Store **Privacy** tab (and anywhere else a privacy policy link is required).
+3. After a minute or two, the policy is available at **`https://matteo101man.github.io/elc-essentials-extension/privacy.html`** (repo must be named **`elc-essentials-extension`** under **`matteo101man`**). Use that exact HTTPS URL in the Chrome Web Store **Privacy** tab (and anywhere else a privacy policy link is required).
