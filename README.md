@@ -77,11 +77,19 @@ Bump the `"version"` field in **`manifest.json`** (Chrome) and **`manifest-firef
 
 ## Privacy policy (public URL for store listings)
 
-Public URL (Chrome Web Store, etc.): **`https://matteo101man.github.io/elc-essentials-extension/privacy.html`**
+**Policy file in this repo:** **`docs/privacy.html`** (with **`docs/.nojekyll`** so GitHub does not run Jekyll over that folder when it is the published site).
 
-**GitHub Pages source:** In **Settings → Pages**, the **folder** matters:
+### Recommended: publish from `/docs` (short URL)
 
-- **Deploy from branch `main` / folder `/ (root)`** — GitHub serves the whole repo. The policy file is **`privacy.html`** at the repository root (a copy also lives under **`docs/`** for convenience).
-- **Deploy from branch `main` / folder `/docs`** — Only the **`docs/`** tree is the site root, so the policy is **`docs/privacy.html`** (same public URL **`…/privacy.html`**).
+1. On GitHub: **Settings → Pages → Build and deployment**.
+2. **Source:** **Deploy from a branch**.
+3. Branch **`main`**, folder **`/docs`** (not **`/ (root)`**), then **Save**.
+4. After the build finishes, the policy is at:
 
-If you change the policy text, keep **`privacy.html`** (root) and **`docs/privacy.html`** in sync unless you switch to **`/docs`**-only Pages and delete the redundant copy.
+   **`https://matteo101man.github.io/elc-essentials-extension/privacy.html`**
+
+Use that URL in the Chrome Web Store **Privacy** tab.
+
+### If you publish from `/ (root)` instead
+
+The same file is also available at **`https://matteo101man.github.io/elc-essentials-extension/docs/privacy.html`**. You can paste that URL into the store if you prefer to keep the site root as the whole repository.
