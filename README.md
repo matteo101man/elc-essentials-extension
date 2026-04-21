@@ -77,8 +77,11 @@ Bump the `"version"` field in **`manifest.json`** (Chrome) and **`manifest-firef
 
 ## Privacy policy (public URL for store listings)
 
-The file **`docs/privacy.html`** is published with **GitHub Pages** from this repository’s **`/docs`** folder.
+Public URL (Chrome Web Store, etc.): **`https://matteo101man.github.io/elc-essentials-extension/privacy.html`**
 
-1. Push this repo to GitHub (create an empty repository on GitHub, then add it as `origin` and `git push -u origin main`).
-2. In the repo on GitHub: **Settings → Pages → Build and deployment → Source**: **Deploy from a branch**, branch **main**, folder **`/docs`**, Save.
-3. After a minute or two, the policy is available at **`https://matteo101man.github.io/elc-essentials-extension/privacy.html`** (repo must be named **`elc-essentials-extension`** under **`matteo101man`**). Use that exact HTTPS URL in the Chrome Web Store **Privacy** tab (and anywhere else a privacy policy link is required).
+**GitHub Pages source:** In **Settings → Pages**, the **folder** matters:
+
+- **Deploy from branch `main` / folder `/ (root)`** — GitHub serves the whole repo. The policy file is **`privacy.html`** at the repository root (a copy also lives under **`docs/`** for convenience).
+- **Deploy from branch `main` / folder `/docs`** — Only the **`docs/`** tree is the site root, so the policy is **`docs/privacy.html`** (same public URL **`…/privacy.html`**).
+
+If you change the policy text, keep **`privacy.html`** (root) and **`docs/privacy.html`** in sync unless you switch to **`/docs`**-only Pages and delete the redundant copy.
