@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "ELC Essentials",
-  "version": "3.3.0",
-  "description": "Practice tests, course schedule, and grade tools for UGA D2L Brightspace (ELC).",
+  "version": "3.6.0",
+  "description": "Practice tests, course schedule, tasks & to-do, and grade tools for UGA D2L Brightspace (ELC).",
   "author": "Matteo Garza",
   "icons": {
     "16": "icons/icon16.png",

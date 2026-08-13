@@ -1,4 +1,4 @@
-﻿(function () {
+(function () {
     'use strict';
 
 
@@ -55,6 +55,7 @@
 
     // ── Original ELC Essentials logic (runs only when extension is enabled in popup) ──
     function elcMain() {
+
     // Paste a raw HTTPS URL to your JSON (e.g. GitHub raw). Add a matching // @connect host if not listed above.
     // Leave empty to load from file once (cached) or use Tampermonkey storage from a previous load.
     const EXAM_DATA_URL = '';
@@ -90,6 +91,7 @@
             el.appendChild(doc.body.firstChild);
         }
     }
+
 
     function normalizeExamPayload(parsed) {
         if (!parsed || !Array.isArray(parsed.tests)) throw new Error('JSON must contain a "tests" array');
@@ -313,10 +315,10 @@
     function showLoadExamUI() {
         takeover(`<div class="pt-page">
             <h1>Load practice exam</h1>
-            <p class="pt-detail-value">Choose a JSON file below (cached in browser storage for this site).</p>
+            <p class="pt-detail-value">Choose a JSON file below (saved in Tampermonkey storage).</p>
             <p style="margin-top:16px;"><input type="file" id="pt-exam-file" accept=".json,application/json"></p>
             <p style="margin-top:16px;"><button type="button" class="pt-d2l-btn pt-d2l-btn-primary" id="pt-loadui-create">Create an exam instead</button></p>
-            <p style="font-size:12px;color:#6e7376;">Or set <code>EXAM_DATA_URL</code> in the extension source to a hosted copy and reload the page.</p>
+            <p style="font-size:12px;color:#6e7376;">Or set <code>EXAM_DATA_URL</code> in the script to a hosted copy and reload the page.</p>
         </div>`);
         savePracticeRoute('list');
         const createBtn = document.getElementById('pt-loadui-create');
@@ -349,7 +351,7 @@
                 <input type="file" id="pt-import-first" accept=".json,application/json" style="display:none;">
             </div>
             <p class="pt-detail-value" style="margin-bottom:12px;">No exams loaded yet. Create your own or import a JSON file.</p>
-            <p style="font-size:12px;color:#6e7376;">Optional: set <code>EXAM_DATA_URL</code> in the extension source to load from a URL.</p>
+            <p style="font-size:12px;color:#6e7376;">Optional: set <code>EXAM_DATA_URL</code> in the script to load from a URL.</p>
         </div>`);
             savePracticeRoute('list');
             document.getElementById('pt-create-exam-btn').addEventListener('click', () => showExamBuilder());
@@ -716,7 +718,7 @@
         }
         const url = typeof EXAM_DATA_URL === 'string' && EXAM_DATA_URL.trim();
         if (url) {
-            takeover(`<div class="pt-page"><h1>Practice Tests</h1><p>Loading exam data...</p></div>`);
+            takeover(`<div class="pt-page"><h1>Practice Tests</h1><p>Loading exam data…</p></div>`);
             GM_xmlhttpRequest({
                 method: 'GET',
                 url: url,
@@ -745,7 +747,7 @@
         renderTestList();
     }
 
-    // â”€â”€ STORAGE â”€â”€
+    // ── STORAGE ──
     function getAttempts(testId) {
         try { return JSON.parse(GM_getValue(`pt_${testId}`, '[]')); } catch { return []; }
     }
@@ -757,7 +759,7 @@
         GM_setValue(`pt_${testId}`, '[]');
     }
 
-    // â”€â”€ EXTRACT COURSE ID â”€â”€
+    // ── EXTRACT COURSE ID ──
     function getCourseId() {
         const m = window.location.pathname.match(/\/d2l\/[^/]+\/(\d+)/);
         if (m) return m[1];
@@ -765,7 +767,7 @@
         return m2 ? m2[1] : null;
     }
 
-    // â”€â”€ PAGE BUILDER: replaces D2L main content area â”€â”€
+    // ── PAGE BUILDER: replaces D2L main content area ──
     function getMainContent() {
         return document.querySelector('.d2l-page-main') ||
                document.querySelector('#ContentView') ||
@@ -781,7 +783,11 @@
     let practiceSessionRestoreScheduled = false;
     let csSessionRestoreAttempted = false;
     let csSessionRestoreScheduled = false;
+    let tasksSessionRestoreAttempted = false;
+    let tasksSessionRestoreScheduled = false;
     let csHighlightTimer = null;
+    /** In-memory for Tasks & To-Do re-filter without re-fetch. */
+    let tasksDataCache = null;
 
     function takeover(html) {
         if (csHighlightTimer) {
@@ -800,12 +806,10 @@
             savedMainHeight = main.style.height;
             practiceTestActive = true;
         }
-        // Force the container to allow scrolling
         main.style.overflow = 'visible';
         main.style.maxHeight = 'none';
         main.style.height = 'auto';
         elcSetHtml(main, html);
-        // Also fix any parent containers that may clip
         let el = main.parentElement;
         while (el && el !== document.body) {
             if (getComputedStyle(el).overflow === 'hidden') {
@@ -834,7 +838,7 @@
         practiceTestActive = false;
     }
 
-    // â”€â”€ CSS (D2L-native look) â”€â”€
+    // ── CSS (D2L-native look) ──
     const css = document.createElement('style');
     css.textContent = `
 .pt-page { max-width: 960px; margin: 0 auto; padding: 24px 20px 60px; font-family: 'Lato','Open Sans',sans-serif; color: #333; }
@@ -856,7 +860,7 @@
 .pt-d2l-btn-primary { background: #006fbf; color: #fff; border-color: #006fbf; }
 .pt-d2l-btn-primary:hover { background: #004489; border-color: #004489; }
 
-/* â”€â”€ Quiz layout with sidebar â”€â”€ */
+/* ── Quiz layout with sidebar ── */
 .pt-quiz-layout { display: flex; gap: 0; font-family: 'Lato','Open Sans',sans-serif; min-height: 600px; }
 .pt-sidebar { width: 210px; flex-shrink: 0; border-right: 1px solid #e6e6e6; background: #fff; position: sticky; top: 0; align-self: flex-start; max-height: 100vh; overflow-y: auto; }
 .pt-sidebar-title { font-size: 14px; font-weight: 700; color: #202020; padding: 12px 12px 8px; margin: 0; text-transform: none; letter-spacing: 0; border-bottom: none; }
@@ -942,7 +946,7 @@
 .pt-explanation.pt-explanation-visible { display: block; }
 .pt-explanation-title { font-weight: 700; color: #006fbf; font-size: 12px; text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 8px; }
 
-/* â”€â”€ Course Schedule â”€â”€ */
+/* ── Course Schedule ── */
 .cs-toolbar { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
 .cs-toolbar-row { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
 .cs-day-details { margin-bottom: 8px; border: 1px solid #e0e0e0; border-radius: 6px; background: #fff; overflow: hidden; }
@@ -978,10 +982,53 @@
 .cs-live-pill { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; padding: 2px 8px; border-radius: 10px; margin-left: 8px; vertical-align: middle; }
 .cs-live-pill-now { background: #c8e6c9; color: #1b5e20; }
 .cs-live-pill-next { background: #ffe082; color: #5d4037; }
+
+/* ── Tasks & To-Do ── */
+.pt-tasks-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; margin-bottom: 16px; }
+.pt-tasks-toolbar label { font-size: 13px; color: #565a5c; display: flex; align-items: center; gap: 6px; }
+.pt-tasks-toolbar select { font-size: 14px; padding: 6px 8px; border: 1px solid #c8c9ca; border-radius: 4px; font-family: inherit; }
+.pt-tasks-toolbar .pt-tasks-ck { display: flex; align-items: center; gap: 6px; font-size: 13px; color: #333; }
+.pt-tasks-cache-hint { font-size: 12px; color: #888; }
+.pt-tasks-section { margin: 16px 0; }
+.pt-tasks-section h2 { font-size: 16px; font-weight: 700; color: #202020; margin: 0 0 12px; padding-bottom: 6px; border-bottom: 2px solid #e6e6e6; }
+.pt-tasks-details { margin: 10px 0; border: 1px solid #e0e0e0; border-radius: 6px; background: #fff; overflow: hidden; }
+.pt-tasks-details > summary { cursor: pointer; list-style: none; font-size: 15px; font-weight: 600; color: #202020; padding: 10px 12px; background: #f5f5f5; }
+.pt-tasks-details > summary::-webkit-details-marker { display: none; }
+.pt-tasks-details > summary::after { content: '\\00a0\\25BC'; float: right; font-size: 10px; color: #888; }
+.pt-tasks-details[open] > summary { border-bottom: 1px solid #e8e8e8; }
+.pt-tasks-details[open] > summary::after { transform: rotate(0deg); }
+.pt-tasks-details-in { padding: 4px 6px; }
+.pt-tasks-course { margin: 8px 0; padding: 0; border: none; background: transparent; }
+.pt-tasks-course > .pt-tasks-details { background: #fafbfc; }
+.pt-tasks-course h3 { font-size: 15px; font-weight: 600; color: #006fbf; margin: 0 0 10px; }
+.pt-tasks-list { list-style: none; margin: 0; padding: 0; }
+.pt-tasks-list li { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 8px 16px; padding: 10px 8px; border-bottom: 1px solid #eee; font-size: 14px; border-radius: 4px; }
+.pt-tasks-list li:last-child { border-bottom: none; }
+.pt-tasks-row--urgent { background: #fff8e1 !important; box-shadow: inset 3px 0 0 #ffc107; }
+.pt-tasks-row--overdue { background: #ffebee !important; }
+.pt-tasks-type { font-size: 11px; font-weight: 700; text-transform: uppercase; color: #888; min-width: 100px; padding-top: 1px; }
+.pt-tasks-title { flex: 1; min-width: 0; }
+.pt-tasks-title a { color: #006fbf; text-decoration: none; }
+.pt-tasks-title a:hover { text-decoration: underline; }
+.pt-tasks-meta { font-size: 12px; color: #6e7376; white-space: nowrap; }
+.pt-tasks-bycourse { font-size: 12px; color: #888; }
+.pt-tasks-err { color: #b71c1c; font-size: 14px; margin: 6px 0; }
+.pt-tasks-hint { font-size: 13px; color: #6e7376; margin: 4px 0 12px; }
+.pt-tasks-quad-wrap { display: flex; flex-direction: column; gap: 10px; margin-top: 8px; }
+.pt-tasks-quad-ov { border: 1px solid #ef9a9a; border-radius: 6px; padding: 8px; background: #fff5f5; }
+.pt-tasks-quad-ov h4 { margin: 0 0 6px; font-size: 14px; color: #b71c1c; }
+.pt-tasks-quad { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+@media (max-width: 700px) { .pt-tasks-quad { grid-template-columns: 1fr; } }
+.pt-tasks-q { border: 1px solid #d0d0d0; border-radius: 6px; background: #fafafa; min-height: 80px; }
+.pt-tasks-q h4 { margin: 0; padding: 8px 10px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px; color: #555; background: #eee; }
+.pt-tasks-q .pt-tasks-list { max-height: 220px; overflow-y: auto; }
+.pt-tasks-q-urgent { border-color: #ffe082; background: #fffef7; }
+.pt-tasks-q-urgent h4 { background: #fff8e1; color: #856404; }
+.pt-tasks-q-late h4 { color: #b71c1c; }
     `;
     document.head.appendChild(css);
 
-    // â”€â”€ PAGES â”€â”€
+    // ── PAGES ──
     function showTestSummary(test) {
         const attempts = getAttempts(test.id);
         let historyHtml = '';
@@ -1223,7 +1270,7 @@
             });
             const box = document.getElementById('pt-expl-' + qid);
             if (box) {
-                elcSetHtml(box, buildExplanationInner(q));
+                box.innerHTML = buildExplanationInner(q);
                 box.classList.add('pt-explanation-visible');
             }
             const chkBtn = document.querySelector('.pt-check-btn[data-check-qid="' + qid + '"]');
@@ -1358,7 +1405,7 @@
                 const fb = document.getElementById('pt-check-' + qid);
                 if (fb) { fb.className = 'pt-check-feedback'; fb.textContent = ''; }
                 const expl = document.getElementById('pt-expl-' + qid);
-                if (expl) { expl.replaceChildren(); expl.classList.remove('pt-explanation-visible'); }
+                if (expl) { expl.innerHTML = ''; expl.classList.remove('pt-explanation-visible'); }
                 const dot = document.getElementById('pt-dot-' + qid);
                 if (dot) dot.classList.remove('answered');
             });
@@ -1409,7 +1456,7 @@
         document.getElementById('pt-submit').addEventListener('click', () => {
             const touched = new Set([...Object.keys(userAnswers), ...idkRevealed]);
             const unanswered = quizQuestions.filter(q => !touched.has(String(q.id))).length;
-            if (unanswered > 0 && !confirm(`You have ${unanswered} question${unanswered > 1 ? 's' : ''} with no answer and no "I don't know." Submit anyway?`)) return;
+            if (unanswered > 0 && !confirm(`You have ${unanswered} question${unanswered > 1 ? 's' : ''} with no answer and no “I don't know.” Submit anyway?`)) return;
             let correct = 0;
             const results = quizQuestions.map(q => {
                 const ua = userAnswers[q.id] || null;
@@ -1515,7 +1562,7 @@
         document.getElementById('pt-back-done').addEventListener('click', () => showTestSummary(test));
     }
 
-    // â”€â”€ GRADE CALCULATOR â”€â”€
+    // ── GRADE CALCULATOR ──
     function parseGradesTable() {
         const table = document.querySelector('table[summary="List of grade items and their values"]');
         if (!table) return null;
@@ -1717,9 +1764,9 @@
                 
                 const statBox = document.getElementById('pt-gc-stat-box');
                 if (statBox) {
-                    elcSetHtml(statBox, isWeightedSystem
+                    statBox.innerHTML = isWeightedSystem 
                         ? `<span class="num">${totalW.toFixed(2)} / ${totalMaxW.toFixed(2)}</span><span class="lbl">Total Weight</span>`
-                        : `<span class="num">${totalPts.toFixed(2)} / ${totalMaxPts.toFixed(2)}</span><span class="lbl">Total Points</span>`);
+                        : `<span class="num">${totalPts.toFixed(2)} / ${totalMaxPts.toFixed(2)}</span><span class="lbl">Total Points</span>`;
                 }
                 
                 for (const cat in cats) {
@@ -1875,7 +1922,6 @@
 
     function initGradeCalculator() {
         if (!window.location.href.includes('/grades/')) return;
-        // Delegation: after restore() from takeover(), the button is recreated from elcSetHtml and loses direct listeners.
         if (!window.__elcGradeCalcDelegated) {
             window.__elcGradeCalcDelegated = true;
             document.addEventListener('click', function (e) {
@@ -1910,9 +1956,13 @@
         obs.observe(document.body, { childList: true, subtree: true });
     }
 
-    // â”€â”€ COURSE SCHEDULE â”€â”€
+    // ── COURSE SCHEDULE ──
     const SCHEDULE_CACHE_KEY = 'elc_schedule_v1';
     const CS_SESSION_KEY = 'elc_cs_session_v1';
+    const TASKS_SESSION_KEY = 'elc_tasks_session_v1';
+    const TASKS_CACHE_KEY = 'elc_tasks_snapshot_v2';
+    const TASKS_CACHE_TTL_MS = 1000 * 60 * 60 * 6;
+    const TASKS_BG_STALE_MS = 1000 * 60 * 2;
     /** Cached D2L course-selector list so the schedule can paint immediately; refreshed in background. */
     const D2L_COURSES_CACHE_KEY = 'elc_d2l_courses_cache_v1';
     const D2L_COURSES_CACHE_TTL_MS = 1000 * 60 * 60 * 4;
@@ -1920,6 +1970,12 @@
     function saveCSRoute(view) {
         try {
             sessionStorage.setItem(CS_SESSION_KEY, JSON.stringify({ view, path: currentPageKey() }));
+        } catch (e) {}
+    }
+
+    function saveTasksRoute(view) {
+        try {
+            sessionStorage.setItem(TASKS_SESSION_KEY, JSON.stringify({ view, path: currentPageKey() }));
         } catch (e) {}
     }
 
@@ -1986,7 +2042,7 @@
             JSON.stringify(b.map(x => [x.orgUnitId, x.name, x.href]).sort());
     }
 
-    /** MM/DD/YYYY â†’ Date (local midnight). */
+    /** MM/DD/YYYY → Date (local midnight). */
     function parseDateFromMDY(mdy) {
         const m = String(mdy).trim().match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
         if (!m) return null;
@@ -2002,12 +2058,27 @@
             route = JSON.parse(raw);
         } catch (e) { return; }
         if (!route || !route.view) return;
-        // Must match the page where the route was saved, or we clear (missing path used to restore on every D2L page).
         if (!route.path || route.path !== currentPageKey()) {
             try { sessionStorage.removeItem(CS_SESSION_KEY); } catch (e2) {}
             return;
         }
         if (route.view === 'main') showCourseSchedulePage();
+    }
+
+    function tryRestoreTasksSession() {
+        if (!getMainContent()) return;
+        let route;
+        try {
+            const raw = sessionStorage.getItem(TASKS_SESSION_KEY);
+            if (!raw) return;
+            route = JSON.parse(raw);
+        } catch (e) { return; }
+        if (!route || !route.view) return;
+        if (!route.path || route.path !== currentPageKey()) {
+            try { sessionStorage.removeItem(TASKS_SESSION_KEY); } catch (e2) {}
+            return;
+        }
+        if (route.view === 'main') showTasksPage();
     }
 
     function scheduleCSSessionRestore() {
@@ -2025,6 +2096,26 @@
             try {
                 if (!sessionStorage.getItem(CS_SESSION_KEY)) return;
                 tryRestoreCSSession();
+            } catch (e) {}
+        };
+        setTimeout(tick, 0);
+    }
+
+    function scheduleTasksSessionRestore() {
+        if (tasksSessionRestoreScheduled) return;
+        tasksSessionRestoreScheduled = true;
+        let tries = 0;
+        const tick = () => {
+            tries++;
+            if (!getMainContent()) {
+                if (tries < 100) setTimeout(tick, 100);
+                return;
+            }
+            if (tasksSessionRestoreAttempted) return;
+            tasksSessionRestoreAttempted = true;
+            try {
+                if (!sessionStorage.getItem(TASKS_SESSION_KEY)) return;
+                tryRestoreTasksSession();
             } catch (e) {}
         };
         setTimeout(tick, 0);
@@ -2053,7 +2144,7 @@
             const crnEl = wrapper.querySelector('.listViewInstructorInformation .list-view-crn-schedule');
             const crn = crnEl ? crnEl.textContent.trim() : '';
 
-            // "FHCE - Fin Plan Hous Con Econ 6235S Section 8" â†’ subjectCode=FHCE, courseNumber=6235S
+            // "FHCE - Fin Plan Hous Con Econ 6235S Section 8" → subjectCode=FHCE, courseNumber=6235S
             const codeMatch = subjCourse.match(/^([A-Z]{2,6})\s*-[^0-9]*?(\d+[A-Z0-9]*)\s+Section/i);
             const subjectCode = codeMatch ? codeMatch[1].trim() : '';
             const courseNumber = codeMatch ? codeMatch[2].trim() : '';
@@ -2173,18 +2264,14 @@
                     });
                     const payload = { term: termLabel, importedAt: new Date().toISOString(), courses };
                     if (tMin && tMax) payload.termBounds = { start: tMin.toISOString(), end: tMax.toISOString() };
-                    saveScheduleData(payload, () => {
-                        btn.textContent = 'Opening D2L...';
-                        btn.style.background = '#2e7d32';
-                        chrome.runtime.sendMessage({ type: 'ELC_ATHENA_IMPORT_DONE' }, () => {
-                            if (chrome.runtime.lastError) {
-                                btn.disabled = false;
-                                btn.textContent = 'Import to D2L Essentials';
-                                btn.style.background = '#006fbf';
-                                alert('Could not switch to D2L: ' + (chrome.runtime.lastError && chrome.runtime.lastError.message ? chrome.runtime.lastError.message : 'try opening D2L manually.'));
-                            }
-                        });
-                    });
+                    saveScheduleData(payload);
+                    btn.textContent = 'Imported ' + courses.length + ' courses';
+                    btn.style.background = '#2e7d32';
+                    setTimeout(() => {
+                        btn.disabled = false;
+                        btn.textContent = 'Import to D2L Essentials';
+                        btn.style.background = '#006fbf';
+                    }, 3000);
                 } catch (err) {
                     alert('Import error: ' + (err && err.message ? err.message : err));
                     btn.disabled = false;
@@ -2256,6 +2343,33 @@
         return null;
     }
 
+    /**
+     * D2L org units that match the imported Athena schedule (Tasks tab only lists these).
+     * @returns {{ list: Array<{orgUnitId:string,name:string,href:string,scheduleCourse:object}>, error: string|null }}
+     */
+    function buildScheduleMatchedD2LCourses(d2lCourses) {
+        const saved = getStoredSchedule();
+        if (!saved || !Array.isArray(saved.courses) || saved.courses.length === 0) {
+            return { list: [], error: 'no_schedule' };
+        }
+        if (!Array.isArray(d2lCourses) || d2lCourses.length === 0) {
+            return { list: [], error: 'no_d2l' };
+        }
+        const list = [];
+        const seen = new Set();
+        saved.courses.forEach(sc => {
+            const m = matchD2LCourse(sc, d2lCourses);
+            if (m && m.orgUnitId && !seen.has(m.orgUnitId)) {
+                seen.add(m.orgUnitId);
+                list.push({ ...m, scheduleCourse: sc });
+            }
+        });
+        if (!list.length) {
+            return { list: [], error: 'no_match' };
+        }
+        return { list, error: null };
+    }
+
     /** Stable key for per-meeting time overrides (stored in saved.timeOverrides). */
     function meetingOverrideKey(course, meetingIndex) {
         const id = (course.crn && String(course.crn).trim()) ? String(course.crn).trim() : String(course.courseCode || 'course');
@@ -2283,7 +2397,7 @@
         return hr + ':' + String(mi).padStart(2, '0') + ' ' + ap;
     }
 
-    /** Athena-style "2:55 PM" or 24h "14:55" â†’ minutes, or null if invalid. */
+    /** Athena-style "2:55 PM" or 24h "14:55" → minutes, or null if invalid. */
     function tryParseTimeFlexible(s) {
         const t = String(s).trim();
         if (!t) return null;
@@ -2300,7 +2414,7 @@
         return null;
     }
 
-    /** Parse "08:15 AM" â†’ minutes since midnight for sorting. */
+    /** Parse "08:15 AM" → minutes since midnight for sorting. */
     function parseTimeToMinutes(timeStr) {
         if (!timeStr) return 0;
         const m = timeStr.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
@@ -2579,8 +2693,6 @@
             clearBtn.addEventListener('click', () => {
                 if (!confirm('Clear the saved schedule? You can re-import from Athena anytime.')) return;
                 try { GM_deleteValue(SCHEDULE_CACHE_KEY); } catch (e) {}
-                _scheduleCross = null;
-                try { chrome.storage.local.remove(SCHEDULE_CACHE_KEY); } catch (e2) {}
                 try { sessionStorage.removeItem(CS_SESSION_KEY); } catch (e2) {}
                 showCourseSchedulePage();
             });
@@ -2617,7 +2729,6 @@
             takeover(`<div class="pt-page">
                 <h1>Course Schedule</h1>
                 <div style="padding:48px 20px;text-align:center;color:#6e7376;">
-                    <div style="font-size:42px;margin-bottom:16px;">ðŸ“…</div>
                     <div style="font-size:18px;font-weight:500;margin-bottom:12px;color:#333;">No schedule imported yet</div>
                     <p style="max-width:500px;margin:0 auto 24px;font-size:15px;">
                         Visit the <strong>UGA Athena registration page</strong>, switch to the
@@ -2654,8 +2765,8 @@
         // Cross-validate: match each Athena course to a D2L course
         const enriched = courses.map(c => ({ ...c, d2lMatch: matchD2LCourse(c, d2lCourses) }));
 
-        // â”€â”€ Build day â†’ [{course, meeting}] map â”€â”€
-        const dayMap   = {}; // day name â†’ array of {course, meeting}
+        // ── Build day → [{course, meeting}] map ──
+        const dayMap   = {}; // day name → array of {course, meeting}
         const asyncCourses = [];
 
         enriched.forEach(course => {
@@ -2678,7 +2789,7 @@
             );
         });
 
-        // â”€â”€ Determine display day order â”€â”€
+        // ── Determine display day order ──
         const now = new Date();
         const todayName     = DAY_NAMES[now.getDay()];
         const yesterdayDate = new Date(now); yesterdayDate.setDate(now.getDate() - 1);
@@ -2819,7 +2930,572 @@
         attachCourseSchedulePageUI(saved);
     }
 
-    // â”€â”€ NAV TAB INJECTION â”€â”€
+    // ── TASKS & TO-DO (assignments + quizzes across courses) ──
+    function gmFetchD2L(url) {
+        const full = (url && url.startsWith('http')) ? url : (window.location.origin + (String(url).startsWith('/') ? url : '/' + url));
+        return new Promise((resolve, reject) => {
+            GM_xmlhttpRequest({
+                method: 'GET',
+                url: full,
+                onload(res) {
+                    if (res.status >= 200 && res.status < 400) resolve(res.responseText);
+                    else reject(new Error('HTTP ' + res.status));
+                },
+                onerror() { reject(new Error('Network error')); }
+            });
+        });
+    }
+
+    function parseTaskDueToTs(label) {
+        if (!label || !String(label).trim()) return null;
+        const t = Date.parse(String(label).trim());
+        return isNaN(t) ? null : t;
+    }
+
+    function sortTasksByDue(items) {
+        return items.slice().sort((a, b) => {
+            const at = a.dueTs, bt = b.dueTs;
+            if (at == null && bt == null) return 0;
+            if (at == null) return 1;
+            if (bt == null) return -1;
+            return at - bt;
+        });
+    }
+
+    function parseDropboxAssignments(html, orgUnitId) {
+        const doc = new DOMParser().parseFromString(html, 'text/html');
+        const table = doc.querySelector('table[summary="List of assignments for this course"]');
+        if (!table) return [];
+        const out = [];
+        const rows = table.querySelectorAll('tbody > tr');
+        rows.forEach(tr => {
+            if (tr.getAttribute('header') != null) return;
+            if (tr.querySelector('th[scope="col"]')) return;
+            if (tr.querySelector('td[colspan]') && !tr.querySelector('th[scope="row"]')) return;
+            const th = tr.querySelector('th[scope="row"]');
+            if (!th) return;
+            const nameA = th.querySelector('.d2l-foldername-medium-font a');
+            const tEl = nameA || th.querySelector('.d2l-foldername-medium-font strong, label strong, strong');
+            if (!tEl) return;
+            const title = tEl.textContent.replace(/\s+/g, ' ').trim();
+            if (!title) return;
+            const tds = tr.querySelectorAll('td');
+            if (tds.length < 1) return;
+            const statusCell = tds[0];
+            const statusText = statusCell.textContent.replace(/\s+/g, ' ').trim();
+            const histA = tr.querySelector('a[href*="folders_history"]');
+            const nameSubA = th.querySelector('a[href*="folder_submit_files"]');
+            const stSubA = statusCell.querySelector('a[href*="folder_submit_files"]');
+            let submitted = false;
+            if (histA) submitted = true;
+            else if (/\b\d+\s*Submission/i.test(statusText)) submitted = true;
+            else if (/not submitted/i.test(statusText)) submitted = false;
+            else if (statusCell.querySelector('a[href*="folders_history"]')) submitted = true;
+            else submitted = false;
+            let targetHref = '';
+            if (submitted) {
+                if (histA) targetHref = histA.getAttribute('href') || '';
+                else {
+                    const dbm = tr.innerHTML.match(/[?&]db=(\d+)/);
+                    if (dbm) {
+                        targetHref = `/d2l/lms/dropbox/user/folders_history.d2l?db=${dbm[1]}&grpid=0&isprv=0&bp=0&ou=${orgUnitId}`;
+                    }
+                }
+            } else {
+                if (nameSubA) targetHref = nameSubA.getAttribute('href') || '';
+                else if (stSubA) targetHref = stSubA.getAttribute('href') || '';
+                else {
+                    const dbm = tr.innerHTML.match(/[?&]db=(\d+)/);
+                    if (dbm) {
+                        targetHref = `/d2l/lms/dropbox/user/folder_submit_files.d2l?db=${dbm[1]}&grpid=0&isprv=0&bp=0&ou=${orgUnitId}`;
+                    }
+                }
+            }
+            if (!targetHref) {
+                targetHref = `/d2l/lms/dropbox/dropbox.d2l?ou=${orgUnitId}`;
+            }
+            if (targetHref.startsWith('/')) {
+                targetHref = window.location.origin + targetHref;
+            }
+            let dueLabel = '';
+            const dueEl = th.querySelector('.d2l-dates-text label');
+            if (dueEl) {
+                const m = dueEl.textContent.replace(/\s+/g, ' ').match(/Due on\s+(.+)/i);
+                dueLabel = m ? m[1].trim() : dueEl.textContent.trim();
+            }
+            out.push({
+                kind: 'assignment',
+                courseId: orgUnitId,
+                title,
+                submitted,
+                href: targetHref,
+                dueLabel,
+                dueTs: parseTaskDueToTs(dueLabel)
+            });
+        });
+        return out;
+    }
+
+    function parseQuizzesFromHtml(html, orgUnitId) {
+        const doc = new DOMParser().parseFromString(html, 'text/html');
+        const out = [];
+        doc.querySelectorAll('a[onclick*="GoToQuiz"]').forEach(a => {
+            const oc = a.getAttribute('onclick') || '';
+            const m = oc.match(/GoToQuiz\(\s*(\d+)/);
+            if (!m) return;
+            const qi = m[1];
+            const tr = a.closest('tr');
+            if (!tr) return;
+            const title = a.textContent.replace(/\s+/g, ' ').trim();
+            if (!title) return;
+            const attCell = tr.querySelector('td:last-child');
+            let submitted = false;
+            if (attCell) {
+                const am = attCell.textContent.replace(/\s+/g, ' ').match(/(\d+)\s*\/\s*(\d+)/);
+                if (am) submitted = parseInt(am[1], 10) > 0;
+            }
+            const path = submitted
+                ? `/d2l/lms/quizzing/user/quiz_submissions.d2l?qi=${qi}&ou=${orgUnitId}`
+                : `/d2l/lms/quizzing/user/attempt/quiz_start.d2l?qi=${qi}&ou=${orgUnitId}`;
+            let dueLabel = '';
+            const ds = tr.querySelector('.ds_b');
+            if (ds) {
+                const tm = ds.textContent.replace(/\s+/g, ' ').match(/Due on\s*([^\n<]+?)(?=\s*(?:Available|$))/i);
+                if (tm) dueLabel = tm[1].trim();
+                else {
+                    const tm2 = ds.textContent.replace(/\s+/g, ' ').match(/Due on\s+(.+)/i);
+                    dueLabel = tm2 ? tm2[1].trim().split('Available')[0].trim() : '';
+                }
+            }
+            out.push({
+                kind: 'quiz',
+                courseId: orgUnitId,
+                title,
+                submitted,
+                href: window.location.origin + path,
+                dueLabel,
+                dueTs: parseTaskDueToTs(dueLabel)
+            });
+        });
+        return out;
+    }
+
+    function fetchTasksForSingleCourse(course) {
+        const ou = course && course.orgUnitId;
+        if (!ou) {
+            return Promise.resolve({ course, items: [], error: 'Missing org unit' });
+        }
+        const o = window.location.origin;
+        const dUrl = o + '/d2l/lms/dropbox/dropbox.d2l?ou=' + encodeURIComponent(ou);
+        const qUrl = o + '/d2l/lms/quizzing/quizzing.d2l?ou=' + encodeURIComponent(ou);
+        return Promise.all([
+            gmFetchD2L(dUrl).catch(err => err),
+            gmFetchD2L(qUrl).catch(err => err)
+        ]).then(([h1, h2]) => {
+            const errBits = [];
+            if (h1 instanceof Error) errBits.push('Assignments: ' + h1.message);
+            if (h2 instanceof Error) errBits.push('Quizzes: ' + h2.message);
+            const s1 = typeof h1 === 'string' ? h1 : '';
+            const s2 = typeof h2 === 'string' ? h2 : '';
+            let items = [];
+            if (s1) items = items.concat(parseDropboxAssignments(s1, String(ou)));
+            if (s2) items = items.concat(parseQuizzesFromHtml(s2, String(ou)));
+            const name = (course && course.name) || 'Course ' + ou;
+            items.forEach(it => { it.courseName = name; });
+            return { course, items, error: errBits.length ? errBits.join(' — ') : null };
+        });
+    }
+
+    function tasksScheduleFingerprint() {
+        try {
+            const s = getStoredSchedule();
+            if (!s || !Array.isArray(s.courses)) return '';
+            return JSON.stringify(s.courses.map(c => [c.courseCode, c.crn, c.title]));
+        } catch (e) { return ''; }
+    }
+
+    function readTasksCache() {
+        try {
+            const raw = GM_getValue(TASKS_CACHE_KEY, '');
+            if (!raw) return null;
+            return JSON.parse(raw);
+        } catch (e) { return null; }
+    }
+
+    function writeTasksCache(payload) {
+        try { GM_setValue(TASKS_CACHE_KEY, JSON.stringify(payload)); } catch (e) {}
+    }
+
+    function tasksCacheUsable(cached, courseList) {
+        if (!cached || typeof cached.savedAt !== 'number' || !Array.isArray(cached.results) || !Array.isArray(cached.courses)) return false;
+        if (Date.now() - cached.savedAt > TASKS_CACHE_TTL_MS) return false;
+        if (cached.scheduleFp !== tasksScheduleFingerprint()) return false;
+        const want = (courseList || []).map(c => String(c.orgUnitId)).sort().join(',');
+        const have = (cached.courses || []).map(c => String(c.orgUnitId)).sort().join(',');
+        if (want !== have) return false;
+        return true;
+    }
+
+    function startOfLocalDay(d) {
+        const x = new Date(d);
+        return new Date(x.getFullYear(), x.getMonth(), x.getDate());
+    }
+
+    function isPastDueIncomplete(it) {
+        if (it.submitted || it.dueTs == null) return false;
+        return it.dueTs < Date.now();
+    }
+
+    /** Not submitted, not yet past due, due calendar = today or tomorrow. */
+    function isDueUrgentHighlight(it) {
+        if (it.submitted || it.dueTs == null) return false;
+        if (it.dueTs < Date.now()) return false;
+        const t0 = startOfLocalDay(new Date());
+        const t1 = new Date(t0);
+        t1.setDate(t0.getDate() + 1);
+        const d = startOfLocalDay(new Date(it.dueTs));
+        return d.getTime() === t0.getTime() || d.getTime() === t1.getTime();
+    }
+
+    function taskRowExtraClass(it) {
+        if (!it.submitted && isPastDueIncomplete(it)) return 'pt-tasks-row--overdue';
+        if (isDueUrgentHighlight(it)) return 'pt-tasks-row--urgent';
+        return '';
+    }
+
+    function filterVisibleIncomplete(incomplete, showPastDue) {
+        if (showPastDue) return incomplete.slice();
+        return incomplete.filter(t => !isPastDueIncomplete(t));
+    }
+
+    function taskOneRowHtml(it, showCourse) {
+        const kindLabel = it.kind === 'quiz' ? 'Quiz' : 'Assignment';
+        const ex = taskRowExtraClass(it);
+        const main = it.href
+            ? `<a href="${escapeHtml(it.href)}" target="_blank" rel="noopener noreferrer">${escapeHtml(it.title)}</a>`
+            : escapeHtml(it.title);
+        const courseBit = (showCourse && it.courseName)
+            ? ' <span class="pt-tasks-bycourse">— ' + escapeHtml(it.courseName) + '</span>'
+            : '';
+        const due = it.dueLabel
+            ? 'Due: ' + escapeHtml(it.dueLabel)
+            : (it.dueTs ? 'Due: (see Brightspace)' : '—');
+        return `<li${ex ? ` class="${ex}"` : ''}>
+            <span class="pt-tasks-type">${escapeHtml(kindLabel)}</span>
+            <div class="pt-tasks-title">${main}${courseBit}</div>
+            <span class="pt-tasks-meta">${escapeHtml(due)}</span>
+        </li>`;
+    }
+
+    function tasksListUl(arr, showCourse) {
+        if (!arr.length) return '<p class="pt-tasks-hint" style="padding:0 6px 8px;">None in this list.</p>';
+        const u = sortTasksByDue(arr).map(t => taskOneRowHtml(t, showCourse)).join('');
+        return `<ul class="pt-tasks-list">${u}</ul>`;
+    }
+
+    function buildQuadrantViewHtml(visibleIncomplete, allIncomplete, showPastDue, showCourse) {
+        const nHidden = allIncomplete.filter(t => isPastDueIncomplete(t)).length;
+        const buckets = { overdue: [], urgent: [], week: [], ahead: [], undated: [] };
+        visibleIncomplete.forEach(it => {
+            if (isPastDueIncomplete(it)) { buckets.overdue.push(it); return; }
+            if (it.dueTs == null) { buckets.undated.push(it); return; }
+            const t0 = startOfLocalDay(new Date());
+            const d = startOfLocalDay(new Date(it.dueTs));
+            const diff = Math.round((d - t0) / 864e5);
+            if (diff <= 1) buckets.urgent.push(it);
+            else if (diff >= 2 && diff <= 7) buckets.week.push(it);
+            else buckets.ahead.push(it);
+        });
+        let html = '<div class="pt-tasks-quad-wrap">';
+        if (!showPastDue && nHidden > 0) {
+            html += `<p class="pt-tasks-hint"><strong>${nHidden}</strong> not-completed, past-due item${nHidden === 1 ? '' : 's'} hidden. Turn on <strong>Show past-due, not completed</strong> to see them (and in the “Past due” area below in quadrant view).</p>`;
+        }
+        if (buckets.overdue.length) {
+            html += '<div class="pt-tasks-quad-ov pt-tasks-q-late"><h4>Past due (not completed)</h4>' + tasksListUl(buckets.overdue, showCourse) + '</div>';
+        }
+        html += '<div class="pt-tasks-quad">';
+        const qUrgent = { title: 'Due today or tomorrow', cls: 'pt-tasks-q-urgent', items: sortTasksByDue(buckets.urgent) };
+        const qWeek = { title: 'Due in 2–7 days', cls: '', items: sortTasksByDue(buckets.week) };
+        const qAhead = { title: 'Get ahead (8+ days)', cls: '', items: sortTasksByDue(buckets.ahead) };
+        const qUn = { title: 'No due date', cls: '', items: sortTasksByDue(buckets.undated) };
+        [qUrgent, qWeek, qAhead, qUn].forEach(q => {
+            html += `<div class="pt-tasks-q ${q.cls}"><h4>${escapeHtml(q.title)}</h4>${tasksListUl(q.items, showCourse)}</div>`;
+        });
+        html += '</div><p class="pt-tasks-hint">Quadrant view helps you <strong>do first</strong> (this week) vs <strong>plan ahead</strong> (later). Yellow highlights in the list view mark items due today or tomorrow (when still not past the due time).</p></div>';
+        return html;
+    }
+
+    function buildTasksPageInner(tasksData, courseKey, groupKey, viewType, showPastDue) {
+        const results = (tasksData && tasksData.results) ? tasksData.results : [];
+        let re = courseKey && courseKey !== 'all'
+            ? results.filter(r => String((r.course && r.course.orgUnitId) || '') === String(courseKey))
+            : results.slice();
+        if (!re.length) {
+            return '<p class="pt-tasks-err">No data for the selected filter. Check <strong>Refresh</strong> or re-import your schedule in Course Schedule if classes changed.</p>';
+        }
+        const byCourse = (groupKey === 'byCourse') && (!courseKey || courseKey === 'all');
+
+        if (viewType === 'quadrant') {
+            const all = [];
+            re.forEach(e => (e.items || []).forEach(x => { all.push(x); }));
+            const inc = all.filter(i => !i.submitted);
+            const allInc = inc.slice();
+            const vis = filterVisibleIncomplete(inc, showPastDue);
+            return buildQuadrantViewHtml(vis, allInc, showPastDue, (courseKey === 'all')) +
+                (function () {
+                    const d = all.filter(i => i.submitted);
+                    if (!d.length) return '';
+                    return `<details class="pt-tasks-details" style="margin-top:20px"><summary>Submitted / done (${d.length})</summary><div class="pt-tasks-details-in">` + tasksListUl(d, (courseKey === 'all')) + `</div></details>`;
+                }());
+        }
+
+        if (byCourse) {
+            let out = '<details class="pt-tasks-details" open><summary>Not completed</summary><div class="pt-tasks-details-in">';
+            re.forEach(e => {
+                if (!e.items) e.items = [];
+                const inc = e.items.filter(i => !i.submitted);
+                const v = filterVisibleIncomplete(inc, showPastDue);
+                if (e.error) {
+                    out += '<div class="pt-tasks-course"><p class="pt-tasks-err">' + escapeHtml(e.error) + '</p></div>';
+                    return;
+                }
+                const cname = (e.course && e.course.name) ? e.course.name : 'Course';
+                out += '<details class="pt-tasks-details" open><summary>' + escapeHtml(cname) + ' (' + v.length + ')</summary><div class="pt-tasks-details-in">';
+                out += v.length ? tasksListUl(v, false) : '<p class="pt-tasks-hint">Nothing due here (or all past-due hidden).</p>';
+                out += '</div></details>';
+            });
+            if (!showPastDue) {
+                const pastN = re.reduce((acc, e) => {
+                    return acc + (e.items || []).filter(t => !t.submitted && isPastDueIncomplete(t)).length;
+                }, 0);
+                if (pastN > 0) {
+                    out += '<p class="pt-tasks-hint">' + pastN + ' past-due, not completed hidden — use the filter above to show them.</p>';
+                }
+            }
+            out += '</div></details>';
+            out += '<details class="pt-tasks-details" style="margin-top:8px"><summary>Submitted / done</summary><div class="pt-tasks-details-in">';
+            re.forEach(e => {
+                if (!e.items) e.items = [];
+                const d = e.items.filter(i => i.submitted);
+                const cname = (e.course && e.course.name) ? e.course.name : 'Course';
+                out += '<details class="pt-tasks-details" style="margin-top:4px" ' + (d.length ? 'open' : '') + '><summary>' + escapeHtml(cname) + ' (' + d.length + ')</summary><div class="pt-tasks-details-in">';
+                out += d.length ? tasksListUl(d, false) : '<p class="pt-tasks-hint">—</p>';
+                out += '</div></details>';
+            });
+            out += '</div></details>';
+            return out;
+        }
+
+        const all = [];
+        re.forEach(e => (e.items || []).forEach(x => { all.push(x); }));
+        const inc = all.filter(i => !i.submitted);
+        const allInc = inc.slice();
+        const vis = filterVisibleIncomplete(inc, showPastDue);
+        const d = all.filter(i => i.submitted);
+        const showTag = (courseKey === 'all');
+        let html = '<details class="pt-tasks-details" open><summary>Not completed (' + vis.length + ')</summary><div class="pt-tasks-details-in">';
+        if (!showPastDue) {
+            const pN = allInc.filter(t => isPastDueIncomplete(t)).length;
+            if (pN) html += '<p class="pt-tasks-hint">' + pN + ' past-due, not completed hidden</p>';
+        }
+        html += vis.length ? tasksListUl(vis, showTag) : '<p class="pt-tasks-hint">You are caught up, or all remaining items are past-due (toggle the filter to see them), or have no due date in Brightspace yet.</p>';
+        html += '</div></details>';
+        html += '<details class="pt-tasks-details" style="margin-top:8px"><summary>Submitted / done (' + d.length + ')</summary><div class="pt-tasks-details-in">';
+        html += d.length ? tasksListUl(d, showTag) : '<p class="pt-tasks-hint">—</p>';
+        html += '</div></details>';
+        return html;
+    }
+
+    function formatTasksCacheLabel(savedAt) {
+        if (typeof savedAt !== 'number') return '';
+        const s = Math.floor((Date.now() - savedAt) / 1000);
+        if (s < 60) return 'Updated just now';
+        if (s < 3600) return 'Updated ' + Math.floor(s / 60) + ' min ago';
+        return 'Updated ' + new Date(savedAt).toLocaleString();
+    }
+
+    function getTasksPageShell() {
+        const c = (tasksDataCache && tasksDataCache.courses) ? tasksDataCache.courses : [];
+        const src = (tasksDataCache && tasksDataCache._source) || '';
+        const sa = (tasksDataCache && tasksDataCache._savedAt) || 0;
+        const hint = sa ? formatTasksCacheLabel(sa) + (src === 'cache' ? ' (cached — refreshing in background if stale)' : '') : '';
+        let opt = '<option value="all">All schedule courses</option>';
+        c.forEach(x => {
+            if (!x || !x.orgUnitId) return;
+            opt += '<option value="' + escapeHtml(String(x.orgUnitId)) + '">' + escapeHtml(x.name || ('Course ' + x.orgUnitId)) + '</option>';
+        });
+        return `<div class="pt-page pt-tasks-page">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;margin-bottom:8px;">
+                <div>
+                    <h1 style="margin:0;">Track work & get ahead</h1>
+                    <span id="pt-tasks-cache-hint" class="pt-tasks-cache-hint">${escapeHtml(hint)}</span>
+                </div>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                    <button type="button" class="pt-d2l-btn" id="pt-tasks-refresh" title="Fetch latest from Brightspace">Refresh from D2L</button>
+                </div>
+            </div>
+            <p style="color:#6e7376;font-size:14px;max-width:52em; margin-bottom:8px;">See what is still <strong>due soon</strong>, what you can <strong>get ahead on</strong>, and what is already done. Only courses from your <strong>imported Athena schedule</strong> appear. Past-due work stays out of the way until you want it. Brightspace is loaded once and cached so reopening this tab is fast; use Refresh to pull changes.</p>
+            <div class="pt-tasks-toolbar">
+                <label>Course
+                    <select id="pt-tasks-course">${opt}</select>
+                </label>
+                <label>Group
+                    <select id="pt-tasks-group">
+                        <option value="byCourse">By course</option>
+                        <option value="all">All items (flat)</option>
+                    </select>
+                </label>
+                <label>View
+                    <select id="pt-tasks-viewtype">
+                        <option value="list">List (collapsible)</option>
+                        <option value="quadrant">Quadrant (planning)</option>
+                    </select>
+                </label>
+                <label class="pt-tasks-ck">
+                    <input type="checkbox" id="pt-tasks-past" />
+                    <span>Show past-due, not completed</span>
+                </label>
+            </div>
+            <div id="pt-tasks-body"></div>
+        </div>`;
+    }
+
+    function mountTasksPageBody() {
+        const c = document.getElementById('pt-tasks-course');
+        const g = document.getElementById('pt-tasks-group');
+        const v = document.getElementById('pt-tasks-viewtype');
+        const p = document.getElementById('pt-tasks-past');
+        const kc = c ? c.value : 'all';
+        const kg = g ? g.value : 'byCourse';
+        const kv = v ? v.value : 'list';
+        const showPast = !!(p && p.checked);
+        const body = document.getElementById('pt-tasks-body');
+        if (body) {
+            body.innerHTML = buildTasksPageInner(tasksDataCache, kc, kg, kv, showPast);
+        }
+    }
+
+    function attachTasksPageUI() {
+        const ref = document.getElementById('pt-tasks-refresh');
+        if (ref) {
+            ref.addEventListener('click', () => showTasksPage({ forceNetwork: true }));
+        }
+        ['pt-tasks-course', 'pt-tasks-group', 'pt-tasks-viewtype', 'pt-tasks-past'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                const ev = (id === 'pt-tasks-past') ? 'change' : 'change';
+                el.addEventListener(ev, mountTasksPageBody);
+            }
+        });
+    }
+
+    function runTasksLoad(courseList, options) {
+        const opts = options || {};
+        const inBackground = !!opts.background;
+        if (!courseList || !courseList.length) {
+            if (!inBackground) {
+                tasksDataCache = { courses: [], results: [], _source: 'empty' };
+                takeover(getTasksPageShell());
+                document.getElementById('pt-tasks-body').innerHTML =
+                    '<p class="pt-tasks-err">No courses from your <strong>schedule</strong> matched D2L. Import your class schedule in <strong>Course Schedule</strong> and ensure course codes match, then open the course switcher (waffle) once so D2L lists your orgs.</p>';
+                attachTasksPageUI();
+            }
+            return;
+        }
+        return Promise.all(courseList.map(c => fetchTasksForSingleCourse(c))).then(results => {
+            const payload = { courses: courseList, results, _source: inBackground ? 'background' : 'network', _savedAt: Date.now() };
+            tasksDataCache = payload;
+            writeTasksCache({ savedAt: Date.now(), scheduleFp: tasksScheduleFingerprint(), courses: courseList, results, source: 'ok' });
+            if (!inBackground) {
+                takeover(getTasksPageShell());
+                const sel = document.getElementById('pt-tasks-course');
+                if (sel && courseList.length === 1) {
+                    sel.value = String(courseList[0].orgUnitId);
+                }
+                const hint = document.getElementById('pt-tasks-cache-hint');
+                if (hint) hint.textContent = formatTasksCacheLabel(Date.now());
+            } else {
+                const hint = document.getElementById('pt-tasks-cache-hint');
+                if (hint) hint.textContent = formatTasksCacheLabel(Date.now()) + ' (refreshed)';
+            }
+            if (document.getElementById('pt-tasks-body')) {
+                if (!inBackground) {
+                    mountTasksPageBody();
+                    attachTasksPageUI();
+                } else {
+                    mountTasksPageBody();
+                }
+            }
+        }).catch(err => {
+            if (!inBackground) {
+                tasksDataCache = { courses: courseList, results: [], _source: 'err', _savedAt: Date.now() };
+                takeover(getTasksPageShell());
+                const b = document.getElementById('pt-tasks-body');
+                if (b) b.innerHTML = '<p class="pt-tasks-err">Could not load tasks: ' + escapeHtml(err && err.message ? err.message : String(err)) + '</p>';
+                attachTasksPageUI();
+            }
+        });
+    }
+
+    function maybeBackgroundRefreshTasks(courseList) {
+        if (!Array.isArray(courseList) || !courseList.length) return;
+        const c = readTasksCache();
+        if (!c || typeof c.savedAt !== 'number') return;
+        if (Date.now() - c.savedAt < TASKS_BG_STALE_MS) return;
+        runTasksLoad(courseList, { background: true });
+    }
+
+    function showTasksPage(opt) {
+        const forceNetwork = opt && opt.forceNetwork;
+        saveTasksRoute('main');
+        takeover(`<div class="pt-page pt-tasks-page"><h1>Track work & get ahead</h1><p style="color:#6e7376;">Loading your schedule and Brightspace…</p></div>`);
+        loadD2LCourseList(fresh => {
+            const d2l = (fresh && fresh.length) ? fresh : getCachedD2LCourses();
+            if (fresh && fresh.length) {
+                try { saveD2LCoursesCache(fresh); } catch (e) {}
+            }
+            const m = buildScheduleMatchedD2LCourses(d2l);
+            if (m.error === 'no_schedule') {
+                takeover(`<div class="pt-page"><h1>Track work & get ahead</h1>
+                    <p class="pt-tasks-err">You need a schedule first. In <strong>Course Schedule</strong>, import your classes from Athena, then return here.</p>
+                    <a href="https://athena-prod.uga.edu/StudentRegistrationSsb/ssb/registrationHistory/registrationHistory" target="_blank" class="pt-d2l-btn pt-d2l-btn-primary" style="text-decoration:none;">Open Athena registration</a></div>`);
+                return;
+            }
+            if (m.error === 'no_d2l' || !d2l.length) {
+                takeover(`<div class="pt-page"><h1>Track work & get ahead</h1>
+                    <p class="pt-tasks-err">No D2L course list yet. Open the <strong>course switcher (waffle)</strong> in the minibar, then try again.</p></div>`);
+                return;
+            }
+            if (m.error === 'no_match' || !m.list.length) {
+                takeover(`<div class="pt-page"><h1>Track work & get ahead</h1>
+                    <p class="pt-tasks-err">No D2L course matched your imported schedule. Check that section names/codes in D2L match (same as Course Schedule), then use <strong>Refresh from D2L</strong> after the switcher has loaded.</p></div>`);
+                return;
+            }
+            const list = m.list;
+            if (!forceNetwork) {
+                const snap = readTasksCache();
+                if (tasksCacheUsable(snap, list) && Array.isArray(snap.results) && snap.results.length) {
+                    tasksDataCache = {
+                        courses: list,
+                        results: snap.results,
+                        _source: 'cache',
+                        _savedAt: snap.savedAt
+                    };
+                    takeover(getTasksPageShell());
+                    if (list.length === 1) {
+                        const sel = document.getElementById('pt-tasks-course');
+                        if (sel) sel.value = String(list[0].orgUnitId);
+                    }
+                    mountTasksPageBody();
+                    attachTasksPageUI();
+                    setTimeout(() => maybeBackgroundRefreshTasks(list), 400);
+                    return;
+                }
+            }
+            runTasksLoad(list, {});
+        });
+    }
+
     // Auto-restore when user navigates away from a takeover view
     function clearTakeoverState() {
         if (!practiceTestActive) return;
@@ -2830,6 +3506,7 @@
         savedMainHeight = null;
         try { sessionStorage.removeItem(PT_SESSION_ROUTE_KEY); } catch (e) {}
         try { sessionStorage.removeItem(CS_SESSION_KEY); } catch (e) {}
+        try { sessionStorage.removeItem(TASKS_SESSION_KEY); } catch (e) {}
         if (csHighlightTimer) { clearInterval(csHighlightTimer); csHighlightTimer = null; }
     }
 
@@ -2841,7 +3518,7 @@
                 ? e.target.closest('.d2l-navigation-s-link, .d2l-navigation-s-item a')
                 : null;
             if (!link) return;
-            if (link.closest('#pt-practice-tab, #pt-schedule-tab')) return;
+            if (link.closest('#pt-practice-tab, #pt-schedule-tab, #pt-tasks-tab')) return;
             clearTakeoverState();
         }, true);
 
@@ -2863,6 +3540,7 @@
         });
     }
 
+    // ── NAV TAB INJECTION ──
     function makeNavTab(id, label, onClick) {
         const tab = document.createElement('div');
         tab.className = 'd2l-navigation-s-item';
@@ -2897,13 +3575,21 @@
             if (practiceTab && practiceTab.nextSibling) navWrapper.insertBefore(tab, practiceTab.nextSibling);
             else navWrapper.appendChild(tab);
         }
+
+        if (!navWrapper.querySelector('#pt-tasks-tab')) {
+            const schedTab = navWrapper.querySelector('#pt-schedule-tab');
+            const tab = makeNavTab('pt-tasks-tab', 'Tasks', showTasksPage);
+            if (schedTab && schedTab.nextSibling) navWrapper.insertBefore(tab, schedTab.nextSibling);
+            else navWrapper.appendChild(tab);
+        }
     }
 
-    // â”€â”€ INIT â”€â”€
+    // ── INIT ──
     const isAthenaPage = window.location.hostname.includes('athena-prod.uga.edu');
 
     function init() {
         if (isAthenaPage) {
+            // On Athena: inject the import button into the registration history page
             injectAthenaImportButton();
             return;
         }
@@ -2946,27 +3632,25 @@
                 }
             });
 
-            if (document.querySelector('.d2l-navigation-s-main-wrapper')) injectNavTab();
-            else {
-                const obs = new MutationObserver(() => {
-                    if (document.querySelector('.d2l-navigation-s-main-wrapper')) {
-                        obs.disconnect();
-                        injectNavTab();
-                    }
-                });
-                obs.observe(document.body, { childList: true, subtree: true });
-            }
+        // On D2L: inject nav tabs
+        if (document.querySelector('.d2l-navigation-s-main-wrapper')) injectNavTab();
+        else {
+            const obs = new MutationObserver(() => {
+                if (document.querySelector('.d2l-navigation-s-main-wrapper')) { obs.disconnect(); injectNavTab(); }
+            });
+            obs.observe(document.body, { childList: true, subtree: true });
+        }
 
-            schedulePracticeSessionRestore();
-            scheduleCSSessionRestore();
-            initGradeCalculator();
+        schedulePracticeSessionRestore();
+        scheduleCSSessionRestore();
+        scheduleTasksSessionRestore();
+        initGradeCalculator();
         });
     }
     if (document.readyState === 'complete') init();
     else window.addEventListener('load', init);
     setTimeout(init, 1500);
-    setTimeout(init, 4000);
-    }
+    setTimeout(init, 4000);    }
 
     chrome.storage.local.get({ elc_extension_enabled: true }, function (cfg) {
         // Default is enabled (true). Only skip when the user has explicitly turned the extension off.

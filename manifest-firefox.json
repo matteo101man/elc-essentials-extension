@@ -1,8 +1,8 @@
 {
   "manifest_version": 2,
   "name": "ELC Essentials",
-  "version": "3.3.0",
-  "description": "ELC Essentials for D2L Brightspace: Practice Tests, Course Schedule, Grade Calculator",
+  "version": "3.6.0",
+  "description": "ELC Essentials for D2L Brightspace: Practice Tests, Course Schedule, Tasks, Grade Calculator",
   "author": "Matteo Garza",
   "browser_specific_settings": {
     "gecko": {
