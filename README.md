@@ -8,6 +8,28 @@ This project is independent. It is not affiliated with D2L, the University Syste
 
 **Maintainer:** [@exearthur](https://github.com/exearthur) (Arthur Pacheco)
 
+## Screenshots
+
+These images show three core features on UGA D2L Brightspace. The same files live in [`store-screenshots/`](store-screenshots/) for Chrome Web Store and Firefox Add-ons listings.
+
+### Course Schedule
+
+Imported from Athena, grouped by day, with a live **NOW** badge on the class in session. You can edit times, re-import, or download a `.ics` calendar file.
+
+![Course Schedule view with today’s classes and a NOW indicator](store-screenshots/screenshot-1.png)
+
+### Exam Builder (Practice Tests)
+
+Create custom practice exams by hand or paste study notes and generate multiple-choice questions with your own OpenAI API key.
+
+![Exam Builder with AI question generator](store-screenshots/screenshot-2.png)
+
+### Projected Grade Calculator
+
+On the D2L Grades page, simulate new scores, drop assignments, or max out grades to see a projected percentage. Changes stay local and are never saved to Brightspace.
+
+![Projected Grade Calculator with editable score rows](store-screenshots/screenshot-3.png)
+
 ---
 
 ## What this extension does
