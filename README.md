@@ -232,8 +232,7 @@ Store listing copy and privacy justifications: see [`CHROME_WEB_STORE_LISTING.md
 
 The extension stores settings and feature data locally in your browser (`chrome.storage.local` and namespaced `localStorage`). Optional calls to OpenAI or remote JSON URLs happen only when you use those features and only to the hosts declared in the manifest.
 
-Full policy: [`docs/privacy.html`](docs/privacy.html)  
-Published URL (GitHub Pages): [https://matteo101man.github.io/elc-essentials-extension/privacy.html](https://matteo101man.github.io/elc-essentials-extension/privacy.html)
+Full policy: [`docs/privacy.html`](docs/privacy.html) in this repository. For Chrome Web Store or Firefox Add-ons, you can paste the GitHub file URL: `https://github.com/matteo101man/elc-essentials-extension/blob/main/docs/privacy.html`
 
 ---
 
