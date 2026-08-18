@@ -24,7 +24,7 @@ jobs:
             exit 1
           fi
 
-          FILE_COUNT=$(echo "$HEAD_COMMIT_JSON" | jq '[.added[], .modified[], .removed[]] | length')
+          FILE_COUNT=$(echo "$HEAD_COMMIT_JSON" | jq '((.added // []) + (.modified // []) + (.removed // [])) | length')
           SHORT_SHA=$(echo "$SHA" | cut -c1-7)
 
           MESSAGE_TRUNC=$(echo "$MESSAGE" | head -c 1000)
